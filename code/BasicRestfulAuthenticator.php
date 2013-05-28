@@ -36,4 +36,11 @@ class BasicRestfulAuthenticator  {
 		return false;
 	}
 
+	/**
+	 * Augment the permission failure method
+	 */
+	public static function permissionFailure(&$response) {
+		$response->addHeader('WWW-Authenticate', 'Basic realm="API Access"');
+	}
+
 }
