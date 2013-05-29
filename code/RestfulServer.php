@@ -104,7 +104,6 @@ class RestfulServer extends Controller {
 
 		// authenticate
 		$identity = $this->authenticate();
-
 		// Must be a member as we use this with can*.
 		if($identity instanceof Member) {
 			$this->member = $identity;
@@ -210,7 +209,7 @@ class RestfulServer extends Controller {
 				$apiObj = $this->getAPIWrapper($obj, $actionName);
 
 				if($apiObj) {
-					$obj = $apiObj->$actionName($this);
+					$obj = $apiObj->handleAction($actionName, $this);
 				}
 				else {
 					$obj = $this->getObjectRelationQuery($obj, $params, $sort, $limit, $actionName);
@@ -454,7 +453,7 @@ class RestfulServer extends Controller {
 			$returnBody = false;
 
 			if($apiObj) {
-				$result = $apiObj->$actionName($this);
+				$result = $apiObj->handleAction($actionName, $this);
 			}
 			else if($obj->hasMethod($actionName)) {
 				Deprecation::notice('3.2', 'Extend RestfulServer_API for custom API methods');
@@ -481,7 +480,7 @@ class RestfulServer extends Controller {
 				$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 				// Handle validation errors
 				if($result instanceof ValidationResult) {
-					return $this->handleValidationError($result, $obj, $reqFormatter);
+					return $this->handleValidationError($result, $obj, $responseFormatter);
 				}
 				else if($result instanceof RestfulServer_API) {
 					$result = $result->getData();
@@ -554,7 +553,7 @@ class RestfulServer extends Controller {
 		}
 		
 		if(!empty($body)) {
-			$data = $formatter->convertStringToArray($body);
+			$data = $this->getPayloadArray();
 		}
 		else {
 			// assume application/x-www-form-urlencoded which is automatically parsed by PHP
@@ -606,6 +605,14 @@ class RestfulServer extends Controller {
 			return false;
 		}
 		return $apiObj;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getPayloadArray() {
+		$formatter = $this->getDataFormatter();
+		return $formatter->convertStringToArray($this->request->getBody());
 	}
 
 	/**
