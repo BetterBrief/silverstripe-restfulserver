@@ -102,8 +102,16 @@ class RestfulServer extends Controller {
 			return $this->permissionFailure();
 		}
 
-		// authenticate through HTTP BasicAuth
-		$this->member = $this->authenticate();
+		// authenticate
+		$identity = $this->authenticate();
+
+		// Must be a member as we use this with can*.
+		if($identity instanceof Member) {
+			$this->member = $identity;
+		}
+		else if($identity !== true) {
+			return $this->permissionFailure();
+		}
 
 		// handle different HTTP verbs
 		if($this->request->isGET() || $this->request->isHEAD()) {
@@ -192,7 +200,7 @@ class RestfulServer extends Controller {
 			if(!$obj) {
 				return $this->notFound();
 			}
-			if(!$obj->canView()) {
+			if(!$obj->canView($this->member)) {
 				return $this->permissionFailure();
 			}
 
@@ -229,7 +237,7 @@ class RestfulServer extends Controller {
 			$responseFormatter->setTotalSize($obj->dataQuery()->query()->unlimitedRowCount());
 			$objs = new ArrayList($obj->toArray());
 			foreach($objs as $obj) {
-				if(!$obj->canView()) {
+				if(!$obj->canView($this->member)) {
 					$objs->remove($obj);
 				}
 			}
@@ -371,7 +379,7 @@ class RestfulServer extends Controller {
 		if(!$obj) {
 			return $this->notFound();
 		}
-		if(!$obj->canDelete()) {
+		if(!$obj->canDelete($this->member)) {
 			return $this->permissionFailure();
 		}
 		
@@ -389,7 +397,7 @@ class RestfulServer extends Controller {
 		if(!$obj) {
 			return $this->notFound();
 		}
-		if(!$obj->canEdit()) {
+		if(!$obj->canEdit($this->member)) {
 			return $this->permissionFailure();
 		}
 		
@@ -483,7 +491,7 @@ class RestfulServer extends Controller {
 			}
 		}
 		else {
-			if(!singleton($className)->canCreate()) {
+			if(!singleton($className)->canCreate($this->member)) {
 				return $this->permissionFailure();
 			}
 			$obj = new $className();
