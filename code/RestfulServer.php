@@ -28,7 +28,7 @@
  */
 class RestfulServer extends Controller {
 	private static $url_handlers = array(
-		'$ClassName/$ID/$Relation' => 'handleAction',
+		'$ClassName/$ID/$ActionName' => 'handleAction',
 		#'$ClassName/#ID' => 'handleItem',
 		#'$ClassName' => 'handleList',
 	);
@@ -80,7 +80,7 @@ class RestfulServer extends Controller {
 		if(!isset($this->urlParams['ClassName'])) return $this->notFound();
 		$className = $this->urlParams['ClassName'];
 		$id = (isset($this->urlParams['ID'])) ? $this->urlParams['ID'] : null;
-		$relation = (isset($this->urlParams['Relation'])) ? $this->urlParams['Relation'] : null;
+		$action = (isset($this->urlParams['ActionName'])) ? $this->urlParams['ActionName'] : null;
 		
 		// Check input formats
 		if(!class_exists($className)) {
@@ -90,8 +90,8 @@ class RestfulServer extends Controller {
 			return $this->notFound();
 		}
 		if(
-			$relation 
-			&& !preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $relation)
+			$action
+			&& !preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $action)
 			) {
 			return $this->notFound();
 		}
@@ -107,19 +107,19 @@ class RestfulServer extends Controller {
 
 		// handle different HTTP verbs
 		if($this->request->isGET() || $this->request->isHEAD()) {
-			return $this->getHandler($className, $id, $relation);
+			return $this->getHandler($className, $id, $action);
 		}
 		
 		if($this->request->isPOST()) {
-			return $this->postHandler($className, $id, $relation);
+			return $this->postHandler($className, $id, $action);
 		}
 		
 		if($this->request->isPUT()) {
-			return $this->putHandler($className, $id, $relation);
+			return $this->putHandler($className, $id, $action);
 		}
 
 		if($this->request->isDELETE()) {
-			return $this->deleteHandler($className, $id, $relation);
+			return $this->deleteHandler($className, $id, $action);
 		}
 
 		// if no HTTP verb matches, return error
@@ -154,12 +154,12 @@ class RestfulServer extends Controller {
 	 * 
 	 * @todo Access checking
 	 * 
-	 * @param String $className
-	 * @param Int $id
-	 * @param String $relation
-	 * @return String The serialized representation of the requested object(s) - usually XML or JSON.
+	 * @param string $className
+	 * @param int $id
+	 * @param string $actionName The name of the action or relation name to execute, if any.
+	 * @return string The serialized representation of the requested object(s) - usually XML or JSON.
 	 */
-	protected function getHandler($className, $id, $relationName) {
+	protected function getHandler($className, $id, $actionName) {
 		$sort = '';
 		
 		if($this->request->getVar('sort')) {
@@ -196,11 +196,19 @@ class RestfulServer extends Controller {
 				return $this->permissionFailure();
 			}
 
-			// Format: /api/v1/<MyClass>/<ID>/<Relation>
-			if($relationName) {
-				$obj = $this->getObjectRelationQuery($obj, $params, $sort, $limit, $relationName);
-				if(!$obj) {
-					return $this->notFound();
+			// Format: /api/v1/<MyClass>/<ID>/<Action>
+			if($actionName) {
+				// check for additional methods on an API class
+				$apiObj = $this->getAPIWrapper($obj, $actionName);
+
+				if($apiObj) {
+					$obj = $apiObj->$actionName($this);
+				}
+				else {
+					$obj = $this->getObjectRelationQuery($obj, $params, $sort, $limit, $actionName);
+					if(!$obj) {
+						return $this->notFound();
+					}
 				}
 				
 				// TODO Avoid creating data formatter again for relation class (see above)
@@ -421,9 +429,9 @@ class RestfulServer extends Controller {
 	 * current resolves in creatig a new element,
 	 * rather than a "Conflict" message.
 	 */
-	protected function postHandler($className, $id, $relation) {
+	protected function postHandler($className, $id, $actionName) {
 		if($id) {
-			if(!$relation) {
+			if(!$actionName) {
 				$this->response->setStatusCode(409);
 				return 'Conflict';
 			}
@@ -432,19 +440,47 @@ class RestfulServer extends Controller {
 			if(!$obj) {
 				return $this->notFound();
 			}
-			
-			if(!$obj->hasMethod($relation)) {
+
+			// check for additional methods on an API class
+			$apiObj = $this->getAPIWrapper($obj, $actionName);
+			$returnBody = false;
+
+			if($apiObj) {
+				$result = $apiObj->$actionName($this);
+			}
+			else if($obj->hasMethod($actionName)) {
+				Deprecation::notice('3.2', 'Extend RestfulServer_API for custom API methods');
+				if(!$obj->stat('allowed_actions') || !in_array($actionName, $obj->stat('allowed_actions'))) {
+					return $this->permissionFailure();
+				}
+				$obj->$actionName();
+				// Set to null as previous versions didn't return a value and
+				// thus blindly upgrading may result in unwanted data exposure.
+				$result = null;
+			}
+			else {
 				return $this->notFound();
 			}
 			
-			if(!$obj->stat('allowed_actions') || !in_array($relation, $obj->stat('allowed_actions'))) {
-				return $this->permissionFailure();
+			$returnBody = isset($result);
+
+			if(!$returnBody) {
+				$this->getResponse()->setStatusCode(204); // No Content
+				return '';
 			}
-			
-			$obj->$relation();
-			
-			$this->getResponse()->setStatusCode(204); // No Content
-			return true;
+			else {
+				$responseFormatter = $this->getResponseDataFormatter($className);
+				$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
+				// Handle validation errors
+				if($result instanceof ValidationResult) {
+					return $this->handleValidationError($result, $obj, $reqFormatter);
+				}
+				else if($result instanceof RestfulServer_API) {
+					$result = $result->getData();
+				}
+				return $responseFormatter->convertDataObject($result);
+
+			}
 		}
 		else {
 			if(!singleton($className)->canCreate()) {
@@ -547,6 +583,21 @@ class RestfulServer extends Controller {
 	 */
 	public function handleValidationError($result, $object, $formatter) {
 		return $formatter->convertValidationResult($result);
+	}
+
+	/**
+	 * @return RestfulServer_API|false
+	 */
+	public function getAPIWrapper($obj, $actionName) {
+		$apiClass = $obj->class . '_API';
+		if(!class_exists($apiClass)) {
+			return false;
+		}
+		$apiObj = new $apiClass($obj, $this);
+		if(!$apiObj->hasMethod($actionName)) {
+			return false;
+		}
+		return $apiObj;
 	}
 
 	/**
