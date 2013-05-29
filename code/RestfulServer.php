@@ -27,7 +27,7 @@
  * @subpackage api
  */
 class RestfulServer extends Controller {
-	static $url_handlers = array(
+	private static $url_handlers = array(
 		'$ClassName/$ID/$Relation' => 'handleAction',
 		#'$ClassName/#ID' => 'handleItem',
 		#'$ClassName' => 'handleList',
@@ -58,7 +58,7 @@ class RestfulServer extends Controller {
 	 */
 	protected $member;
 	
-	public static $allowed_actions = array(
+	private static $allowed_actions = array(
 		'index',
 	);
 	
@@ -461,16 +461,19 @@ class RestfulServer extends Controller {
 		
 			$result = $this->updateDataObject($obj, $reqFormatter);
 		
+			// If the object is nothing, then it is a 204. Return no content.
+			if($result instanceof DataObject && !$result->exists()) {
+				return '';
+			}
+
+			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
+			
 			// Handle validation errors
 			if($result instanceof ValidationResult) {
 				return $this->handleValidationError($result, $obj, $reqFormatter);
 			}
-			// If the object is nothing, then it is a 204. Return no content.
-			else if(!$result->exists()) {
-				return '';
-			}
+
 			$this->getResponse()->setStatusCode(201); // Created
-			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
 			// Append the default extension for the output format to the Location header
 			// or else we'll use the default (XML)
