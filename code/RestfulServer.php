@@ -210,6 +210,9 @@ class RestfulServer extends Controller {
 
 				if($apiObj) {
 					$obj = $apiObj->handleAction($actionName, $this);
+					if(is_string($obj)) {
+						return $obj;
+					}
 				}
 				else {
 					$obj = $this->getObjectRelationQuery($obj, $params, $sort, $limit, $actionName);
@@ -454,6 +457,9 @@ class RestfulServer extends Controller {
 
 			if($apiObj) {
 				$result = $apiObj->handleAction($actionName, $this);
+				if(is_string($result)) {
+					return $result;
+				}
 			}
 			else if($obj->hasMethod($actionName)) {
 				Deprecation::notice('3.2', 'Extend RestfulServer_API for custom API methods');
@@ -681,7 +687,7 @@ class RestfulServer extends Controller {
 		}
 	}
 	
-	protected function permissionFailure() {
+	public function permissionFailure() {
 		$authClass = self::config()->authenticator;
 		// always return a 401
 		$this->getResponse()->setStatusCode(401);
@@ -693,7 +699,7 @@ class RestfulServer extends Controller {
 		return "You don't have access to this item through the API.";
 	}
 
-	protected function notFound() {
+	public function notFound() {
 		// return a 404
 		$this->getResponse()->setStatusCode(404);
 		$this->getResponse()->addHeader('Content-Type', 'text/plain');
@@ -719,9 +725,17 @@ class RestfulServer extends Controller {
 	 */
 	protected function authenticate() {
 		$authClass = self::config()->authenticator;
-		return $authClass::authenticate();
+		return $authClass::authenticate($this);
 	}
 	
+	/**
+	 * Gets the currently authenticated member
+	 * @return Member
+	 */
+	public function getMember() {
+		return $this->member;
+	}
+
 	/**
 	 * Return only relations which have $api_access enabled.
 	 * @todo Respect field level permissions once they are available in core

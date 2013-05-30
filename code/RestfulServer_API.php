@@ -52,6 +52,13 @@ abstract class RestfulServer_API extends Object {
 					return $controller->notFound();
 				}
 			}
+			if(isset($apiParams['permissions'])) {
+				foreach($apiParams['permissions'] as $permissionMethod) {
+					if(!$this->data->$permissionMethod($controller->getMember())) {
+						return $controller->permissionFailure();
+					}
+				}
+			}
 			if(isset($apiParams['params'])) {
 				$paramSettings = $apiParams['params'];
 				$params = $this->controller->getPayloadArray();
@@ -61,6 +68,21 @@ abstract class RestfulServer_API extends Object {
 				if(!$result->valid()) {
 					return $result;
 				}
+			}
+		}
+		else {
+			// Check case sensitive method name. :PHP:
+			$refClass = new ReflectionClass(get_class($this));
+			$refMeths = $refClass->getMethods();
+			$actionFound = false;
+			foreach($refMeths as $meth) {
+				if($meth->name == $action) {
+					$actionFound = true;
+					break;
+				}
+			}
+			if(!$actionFound) {
+				return $controller->notFound();
 			}
 		}
 		return $this->$action($controller, $params);
