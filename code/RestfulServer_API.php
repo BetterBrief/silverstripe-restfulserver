@@ -10,7 +10,16 @@ abstract class RestfulServer_API extends Object {
 		$controller;
 
 	protected static
-		// define and override these!
+		/**
+		 * Define and override these. Example:
+		 * 	'method' => 'POST',			// limit this to a request method
+		 *	'instance' => true,			// is an instantiated object required
+		 *	'params' => array(			// parameters to be passed to the method
+		 *		'NonRequiredParam' => false,
+		 *		'RequiredParam' => true,
+		 *	),
+		 *	'permissions' => array('canEdit'), // required can* permissions
+		 */
 		$api_params = array();
 
 	/**

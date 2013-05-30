@@ -86,7 +86,7 @@ class RestfulServer extends Controller {
 		if(!class_exists($className)) {
 			return $this->notFound();
 		}
-		if($id && !is_numeric($id)) {
+		if($id && !(is_numeric($id) || $id == 'me')) {
 			return $this->notFound();
 		}
 		if(
@@ -374,7 +374,7 @@ class RestfulServer extends Controller {
 	 * Handler for object delete
 	 */
 	protected function deleteHandler($className, $id) {
-		$obj = DataObject::get_by_id($className, $id);
+		$obj = $this->getObjectFromParams($className, $id);
 		if(!$obj) {
 			return $this->notFound();
 		}
@@ -392,7 +392,7 @@ class RestfulServer extends Controller {
 	 * Handler for object write
 	 */
 	protected function putHandler($className, $id) {
-		$obj = DataObject::get_by_id($className, $id);
+		$obj = $this->getObjectFromParams($className, $id);
 		if(!$obj) {
 			return $this->notFound();
 		}
@@ -443,7 +443,7 @@ class RestfulServer extends Controller {
 				return 'Conflict';
 			}
 			
-			$obj = DataObject::get_by_id($className, $id);
+			$obj = $this->getObjectFromParams($className, $id);
 			if(!$obj) {
 				return $this->notFound();
 			}
@@ -589,6 +589,7 @@ class RestfulServer extends Controller {
 	 * @return string
 	 */
 	public function handleValidationError($result, $object, $formatter) {
+		$this->getResponse()->setStatusCode(400);
 		return $formatter->convertValidationResult($result);
 	}
 
@@ -608,11 +609,23 @@ class RestfulServer extends Controller {
 	}
 
 	/**
+	 * Returns the parsed request payload in array form.
 	 * @return array
 	 */
 	public function getPayloadArray() {
 		$formatter = $this->getDataFormatter();
 		return $formatter->convertStringToArray($this->request->getBody());
+	}
+
+	/**
+	 * Gets a DataObject, typically from the request ClassName and ID params
+	 * @return DataObject|false
+	 */
+	public function getObjectFromParams($className, $id) {
+		if($className == 'Member' && $id == 'me') {
+			return $this->member;
+		}
+		return $className::get()->byId($id);
 	}
 
 	/**
