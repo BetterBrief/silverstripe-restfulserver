@@ -86,8 +86,21 @@ class RestfulServer extends Controller {
 		if(!class_exists($className)) {
 			return $this->notFound();
 		}
-		if($id && !(is_numeric($id) || $id == 'me')) {
-			return $this->notFound();
+		if($id && !is_numeric($id)) {
+			// "me" refers to the currently authenticated member
+			if($id != 'me') {
+				// look to see if we want to run an instanceless method
+				$sngObj = new $className();
+				$wrapper = $this->getAPIWrapper($sngObj, $id);
+				// if there is a wrapper and it works then shift the arguments
+				if($wrapper) {
+					$action = $id;
+					$id = null;
+				}
+				else {
+					return $this->notFound();
+				}
+			}
 		}
 		if(
 			$action
@@ -486,7 +499,7 @@ class RestfulServer extends Controller {
 				$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 				// Handle validation errors
 				if($result instanceof ValidationResult) {
-					return $this->handleValidationError($result, $obj, $responseFormatter);
+					return $this->handleValidationError($result, $responseFormatter);
 				}
 				else if($result instanceof RestfulServer_API) {
 					$result = $result->getData();
@@ -496,33 +509,45 @@ class RestfulServer extends Controller {
 			}
 		}
 		else {
-			if(!singleton($className)->canCreate($this->member)) {
-				return $this->permissionFailure();
-			}
-			$obj = new $className();
-		
+			$sngObj = singleton($className);
 			$reqFormatter = $this->getRequestDataFormatter($className);
-			if(!$reqFormatter) {
-				return $this->unsupportedMediaType();
-			}
-		
+			$apiObj = $this->getAPIWrapper($sngObj, $actionName);
+
 			$responseFormatter = $this->getResponseDataFormatter($className);
-		
-			$result = $this->updateDataObject($obj, $reqFormatter);
-		
-			// If the object is nothing, then it is a 204. Return no content.
-			if($result instanceof DataObject && !$result->exists()) {
-				return '';
+
+			if($apiObj) {
+				$result = $apiObj->handleAction($actionName, $this);
+			}
+			else {
+	
+				if(!$sngObj->canCreate($this->member)) {
+					return $this->permissionFailure();
+				}
+				$obj = new $className();
+			
+				if(!$reqFormatter) {
+					return $this->unsupportedMediaType();
+				}
+			
+			
+				$result = $this->updateDataObject($obj, $reqFormatter);
+			
+				// If the object is nothing, then it is a 204. Return no content.
+				if($result instanceof DataObject && !$result->exists()) {
+					return '';
+				}
+	
+				$this->getResponse()->setStatusCode(201); // Created
 			}
 
-			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
-			
 			// Handle validation errors
 			if($result instanceof ValidationResult) {
-				return $this->handleValidationError($result, $obj, $reqFormatter);
+				return $this->handleValidationError($result, $reqFormatter);
 			}
-
-			$this->getResponse()->setStatusCode(201); // Created
+			else if(is_string($result) || !isset($result)) {
+				return $result;
+			}
+			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
 			// Append the default extension for the output format to the Location header
 			// or else we'll use the default (XML)
@@ -590,11 +615,10 @@ class RestfulServer extends Controller {
 	/**
 	 * Handles validation errors and formats them properly.
 	 * @param ValidationResult $result
-	 * @param DataObject $object
 	 * @param DataFormatter $formatter
 	 * @return string
 	 */
-	public function handleValidationError($result, $object, $formatter) {
+	public function handleValidationError($result, $formatter) {
 		$this->getResponse()->setStatusCode(400);
 		return $formatter->convertValidationResult($result);
 	}
@@ -619,7 +643,7 @@ class RestfulServer extends Controller {
 	 * @return array
 	 */
 	public function getPayloadArray() {
-		$formatter = $this->getDataFormatter();
+		$formatter = $this->getRequestDataFormatter();
 		return $formatter->convertStringToArray($this->request->getBody());
 	}
 
