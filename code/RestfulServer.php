@@ -125,11 +125,17 @@ class RestfulServer extends Controller {
 
 		// authenticate
 		$identity = $this->authenticate();
-		// Must be a member as we use this with can*.
+
+		// If there is a member we impersonate it
 		if($identity instanceof Member) {
 			$this->member = $identity;
 		}
-		else if($identity !== true) {
+		// No logged in member so the member is null
+		else if($identity === true) {
+			$this->member = null;
+		}
+		// Must be true or a Member... so 403 time
+		else {
 			return $this->permissionFailure();
 		}
 
@@ -753,7 +759,7 @@ class RestfulServer extends Controller {
 	/**
 	 * A function to authenticate a user
 	 *
-	 * @return Member|false the logged in member
+	 * @return Member|boolean the logged in member or a blanket allowance
 	 */
 	protected function authenticate() {
 		$authClass = self::config()->authenticator;
