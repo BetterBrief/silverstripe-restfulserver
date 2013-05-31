@@ -57,6 +57,12 @@ class RestfulServer extends Controller {
 	 * @var Member
 	 */
 	protected $member;
+
+	/**
+	 * Holds the class name, ID and action.
+	 * @var array
+	 */
+	protected $requestConfig;
 	
 	private static $allowed_actions = array(
 		'index',
@@ -108,7 +114,9 @@ class RestfulServer extends Controller {
 			) {
 			return $this->notFound();
 		}
-		
+
+		$this->updateRequestConfig($className, $id, $action);
+
 		// if api access is disabled, don't proceed
 		$apiAccess = singleton($className)->stat('api_access');
 		if(!$apiAccess) {
@@ -758,6 +766,29 @@ class RestfulServer extends Controller {
 	 */
 	public function getMember() {
 		return $this->member;
+	}
+
+	/**
+	 * Set up some variables that dependent classes can get, so they know what
+	 * action is being run.
+	 * @param string $className
+	 * @param string|null $id
+	 * @param string|null $action
+	 */
+	public function updateRequestConfig($className, $id = null, $action = null) {
+		$this->requestConfig = array(
+			'ClassName' => $className,
+			'ID' => $id,
+			'Action' => $action,
+		);
+		return $this;
+	}
+
+	/**
+	 * @return array the current request config
+	 */
+	public function getRequestConfig() {
+		return $this->requestConfig;
 	}
 
 	/**
