@@ -527,8 +527,6 @@ class RestfulServer extends Controller {
 			$reqFormatter = $this->getRequestDataFormatter($className);
 			$apiObj = $this->getAPIWrapper($sngObj, $actionName);
 
-			$responseFormatter = $this->getResponseDataFormatter($className);
-
 			if($apiObj) {
 				$result = $apiObj->handleAction($actionName, $this);
 			}
@@ -542,8 +540,7 @@ class RestfulServer extends Controller {
 				if(!$reqFormatter) {
 					return $this->unsupportedMediaType();
 				}
-			
-			
+
 				$result = $this->updateDataObject($obj, $reqFormatter);
 			
 				// If the object is nothing, then it is a 204. Return no content.
@@ -561,6 +558,9 @@ class RestfulServer extends Controller {
 			else if(is_string($result) || !isset($result)) {
 				return $result;
 			}
+
+			$responseFormatter = $this->getResponseDataFormatter($result->class);
+
 			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
 			// Append the default extension for the output format to the Location header
@@ -658,7 +658,26 @@ class RestfulServer extends Controller {
 	 */
 	public function getPayloadArray() {
 		$formatter = $this->getRequestDataFormatter();
-		return $formatter->convertStringToArray($this->request->getBody());
+		if($this->request->isGet()) {
+			return $this->request->getVars();
+		}
+		$body = $this->request->getBody();
+		if(empty($body)) {
+			return array();
+		}
+		return $formatter->convertStringToArray($body);
+	}
+
+	/**
+	 * @return string The request payload (or vars, for GET) in string form.
+	 */
+	public function getPayloadString() {
+		if($this->request->isGet()) {
+			$vars = $this->request->getVars();
+			unset($vars['url']); // SS auto adds this for routing - discard it
+			return http_build_query($vars);
+		}
+		return $this->request->getBody();
 	}
 
 	/**
