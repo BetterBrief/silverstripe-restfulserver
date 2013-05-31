@@ -617,8 +617,7 @@ class RestfulServer extends Controller {
 
 		$result = $obj->validate();
 		if(!$result->valid()) {
-			$this->getResponse()->setStatusCode(400);
-			return $result;
+			return $this->handleValidationError($result);
 		}
 
 		$obj->write();
@@ -632,7 +631,10 @@ class RestfulServer extends Controller {
 	 * @param DataFormatter $formatter
 	 * @return string
 	 */
-	public function handleValidationError($result, $formatter) {
+	public function handleValidationError($result, $formatter = null) {
+		if(!$formatter) {
+			$formatter = $this->getResponseDataFormatter();
+		}
 		$this->getResponse()->setStatusCode(400);
 		return $formatter->convertValidationResult($result);
 	}
