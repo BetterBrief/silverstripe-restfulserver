@@ -636,7 +636,15 @@ class RestfulServer extends Controller {
 			$formatter = $this->getResponseDataFormatter();
 		}
 		$this->getResponse()->setStatusCode(400);
-		return $formatter->convertValidationResult($result);
+		$list = $result->messageList();
+		$extended = $this->extend('handleValidationError', $result, $formatter);
+		if(!empty($extended)) {
+			$list = array();
+			foreach($extended as $extendResult) {
+				$list = array_merge($list, $extendResult);
+			}
+		}
+		return $formatter->convertValidationResult($list);
 	}
 
 	/**
