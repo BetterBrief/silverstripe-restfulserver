@@ -461,14 +461,14 @@ class RestfulServerTest extends SapphireTest {
  */
 class RestfulServerTest_Comment extends DataObject implements PermissionProvider,TestOnly {
 	
-	static $api_access = true;
+	private static $api_access = true;
 	
-	static $db = array(
+	private static $db = array(
 		"Name" => "Varchar(255)",
 		"Comment" => "Text"
 	);
 	
-	static $has_one = array(
+	private static $has_one = array(
 		'Page' => 'RestfulServerTest_Page', 
 		'Author' => 'RestfulServerTest_Author', 
 	);
@@ -500,9 +500,9 @@ class RestfulServerTest_Comment extends DataObject implements PermissionProvider
 }
 
 class RestfulServerTest_SecretThing extends DataObject implements TestOnly,PermissionProvider{
-	static $api_access = true;
+	private static $api_access = true;
 	
-	static $db = array(
+	private static $db = array(
 		"Name" => "Varchar(255)",
 	);
 	
@@ -519,22 +519,22 @@ class RestfulServerTest_SecretThing extends DataObject implements TestOnly,Permi
 
 class RestfulServerTest_Page extends DataObject implements TestOnly {
 	
-	static $api_access = false;
+	private static $api_access = false;
 	
-	static $db = array(
+	private static $db = array(
 		'Title' => 'Text',	
 		'Content' => 'HTMLText',
 	);
 	
-	static $has_one = array(
+	private static $has_one = array(
 		'Author' => 'RestfulServerTest_Author', 
 	);
 	
-	static $has_many = array(
+	private static $has_many = array(
 		'TestComments' => 'RestfulServerTest_Comment'
 	);
 	
-	static $belongs_many_many = array(
+	private static $belongs_many_many = array(
 		'RelatedAuthors' => 'RestfulServerTest_Author', 
 	);
 
@@ -542,18 +542,18 @@ class RestfulServerTest_Page extends DataObject implements TestOnly {
 
 class RestfulServerTest_Author extends DataObject implements TestOnly {
 	
-	static $api_access = true;
+	private static $api_access = true;
 	
-	static $db = array(
+	private static $db = array(
 		'Name' => 'Text',
 	);
 		
-	static $many_many = array(
+	private static $many_many = array(
 		'RelatedPages' => 'RestfulServerTest_Page', 
 		'RelatedAuthors' => 'RestfulServerTest_Author', 
 	);
 	
-	static $has_many = array(
+	private static $has_many = array(
 		'PublishedPages' => 'RestfulServerTest_Page',
 		'Ratings' => 'RestfulServerTest_AuthorRating', 
 	);
@@ -564,7 +564,7 @@ class RestfulServerTest_Author extends DataObject implements TestOnly {
 }
 
 class RestfulServerTest_AuthorRating extends DataObject implements TestOnly {
-	static $api_access = array(
+	private static $api_access = array(
 		'view' => array(
 			'Rating',
 			'WriteProtectedField',
@@ -575,13 +575,13 @@ class RestfulServerTest_AuthorRating extends DataObject implements TestOnly {
 		)
 	);
 	
-	static $db = array(
+	private static $db = array(
 		'Rating' => 'Int',
 		'SecretField' => 'Text',
 		'WriteProtectedField' => 'Text',
 	);
 	
-	static $has_one = array(
+	private static $has_one = array(
 		'Author' => 'RestfulServerTest_Author', 
 		'SecretRelation' => 'RestfulServerTest_Author', 
 	);
@@ -598,4 +598,3 @@ class RestfulServerTest_AuthorRating extends DataObject implements TestOnly {
 		return true;
 	}
 }
-
