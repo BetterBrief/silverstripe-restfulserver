@@ -104,11 +104,11 @@ abstract class RestfulServer_API extends Object {
 	 * @return ValidationResult
 	 */
 	public function validate($settings, $params) {
-		$result = new ValidationResult();
+		$result = ValidationResult::create();
 		foreach($settings as $name => $required) {
 			if($required) {
 				if(empty($params[$name])) {
-					$result->error($name);
+					$result->error($name, 'REQUIRED');
 				}
 				continue;
 			}

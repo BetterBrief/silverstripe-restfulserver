@@ -259,13 +259,18 @@ class RestfulServer extends Controller {
 				}
 				// TODO Avoid creating data formatter again for relation class (see above)
 				$responseFormatter = $this->getResponseDataFormatter($dataClass);
+
+				if($obj instanceof ValidationResult) {
+					return $this->handleValidationError($obj, $responseFormatter);
+				}
+
 			} 
 			
 		} else {
 			// Format: /api/v1/<MyClass>
 			$obj = $this->getObjectsQuery($className, $params, $sort, $limit);
 		}
-		
+
 		$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 		
 		$rawFields = $this->request->getVar('fields');
