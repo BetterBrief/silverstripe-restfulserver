@@ -217,12 +217,12 @@ class RestfulServer extends Controller {
 		if(!$responseFormatter) {
 			return $this->unsupportedMediaType();
 		}
-		
+
 		// $obj can be either a DataObject or a SS_List,
 		// depending on the request
 		if($id) {
 			// Format: /api/v1/<MyClass>/<ID>
-			$obj = $this->getObjectQuery($className, $id, $params)->First();
+			$obj = $this->getObjectFromParams($className, $id);
 			if(!$obj) {
 				return $this->notFound();
 			}
@@ -247,9 +247,18 @@ class RestfulServer extends Controller {
 						return $this->notFound();
 					}
 				}
-				
+
+				if($obj instanceof DataList) {
+					$dataClass = $obj->dataClass();
+				}
+				else if($obj instanceof DataObject) {
+					$dataClass = $obj->class;
+				}
+				else {
+					$dataClass = null;
+				}
 				// TODO Avoid creating data formatter again for relation class (see above)
-				$responseFormatter = $this->getResponseDataFormatter($obj->dataClass());
+				$responseFormatter = $this->getResponseDataFormatter($dataClass);
 			} 
 			
 		} else {
@@ -710,7 +719,7 @@ class RestfulServer extends Controller {
 	 * @param array $params
 	 * @return DataList
 	 */
-	protected function getObjectQuery($className, $id, $params) {
+	protected function getObjectQuery($className, $id) {
 	    return DataList::create($className)->byIDs(array($id));
 	}
 	
