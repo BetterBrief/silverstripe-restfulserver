@@ -38,21 +38,6 @@ class RestfulServer extends Controller {
 	protected static $authenticator = 'BasicRestfulAuthenticator';
 
 	/**
-	 * If no extension is given in the request, resolve to this extension
-	 * (and subsequently the {@link self::$default_mimetype}.
-	 *
-	 * @var string
-	 */
-	public static $default_extension = "xml";
-	
-	/**
-	 * If no extension is given, resolve the request to this mimetype.
-	 *
-	 * @var string
-	 */
-	protected static $default_mimetype = "text/xml";
-	
-	/**
 	 * @uses authenticate()
 	 * @var Member
 	 */
@@ -345,13 +330,15 @@ class RestfulServer extends Controller {
 		}
 		elseif($includeAcceptHeader && !empty($accept) && $accept != '*/*') {
 			$formatter = DataFormatter::for_mimetypes($mimetypes);
-			if(!$formatter) $formatter = DataFormatter::for_extension(self::$default_extension);
+			if(!$formatter) {
+				$formatter = DataFormatter::for_extension(self::config()->default_extension);
+			}
 		}
 		elseif(!empty($contentType)) {
 			$formatter = DataFormatter::for_mimetype($contentType);
 		}
 		else {
-			$formatter = DataFormatter::for_extension(self::$default_extension);
+			$formatter = DataFormatter::for_extension(self::config()->default_extension);
 		}
 
 		if(!$formatter) return false;

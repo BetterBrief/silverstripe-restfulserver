@@ -1,0 +1,10 @@
+---
+Name: RestfulServer
+After: 'mysite/*'
+---
+RestfulServer:
+  # If no extension is given in the request, resolve to this extension
+  # (and subsequently the default_mimetype.
+  default_extension: 'xml'
+  # If no extension is given, resolve the request to this mimetype.
+  default_mimetype: 'text/xml'
