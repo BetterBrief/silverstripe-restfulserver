@@ -443,6 +443,10 @@ class RestfulServer extends Controller {
 		
 		$obj = $this->updateDataObject($obj, $reqFormatter);
 		
+		if($obj instanceof ValidationResult) {
+			return $this->handleValidationError($obj, $reqFormatter);
+		}
+
 		$this->getResponse()->setStatusCode(200); // Success
 		$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
@@ -618,7 +622,7 @@ class RestfulServer extends Controller {
 
 		$result = $obj->validate();
 		if(!$result->valid()) {
-			return $this->handleValidationError($result);
+			return $result;
 		}
 
 		$obj->write();
