@@ -119,7 +119,7 @@ class RestfulServer extends Controller {
 		else if($identity === true) {
 			$this->member = null;
 		}
-		// Must be true or a Member... so 403 time
+		// Must be true or a Member... so 401 time
 		else {
 			return $this->permissionFailure();
 		}
@@ -261,7 +261,7 @@ class RestfulServer extends Controller {
 		$rawFields = $this->request->getVar('fields');
 		$fields = $rawFields ? explode(',', $rawFields) : null;
 
-		if($obj instanceof SS_List) {
+		if($obj instanceof DataList) {
 			$responseFormatter->setTotalSize($obj->dataQuery()->query()->unlimitedRowCount());
 			$objs = new ArrayList($obj->toArray());
 			foreach($objs as $obj) {
@@ -270,6 +270,9 @@ class RestfulServer extends Controller {
 				}
 			}
 			return $responseFormatter->convertDataObjectSet($objs, $fields);
+		}
+		else if($obj instanceof ArrayList) {
+			return $responseFormatter->convertArrayList($obj);
 		}
 		else if(!$obj) {
 			$responseFormatter->setTotalSize(0);
@@ -519,6 +522,9 @@ class RestfulServer extends Controller {
 				// Handle validation errors
 				if($result instanceof ValidationResult) {
 					return $this->handleValidationError($result, $responseFormatter);
+				}
+				else if($result instanceof ArrayList) {
+					return $responseFormatter->convertArrayList($result);
 				}
 				else if($result instanceof RestfulServer_API) {
 					$result = $result->getData();
