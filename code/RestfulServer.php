@@ -72,7 +72,6 @@ class RestfulServer extends Controller {
 		$className = $this->urlParams['ClassName'];
 		$id = (isset($this->urlParams['ID'])) ? $this->urlParams['ID'] : null;
 		$action = (isset($this->urlParams['ActionName'])) ? $this->urlParams['ActionName'] : null;
-		
 		// Check input formats
 		if(!class_exists($className)) {
 			return $this->notFound();
@@ -679,7 +678,7 @@ class RestfulServer extends Controller {
 	 */
 	public function getPayloadArray() {
 		$formatter = $this->getRequestDataFormatter();
-		if($this->request->isGet()) {
+		if($this->request->isGet() || $this->request->isDELETE()) {
 			return $this->request->getVars();
 		}
 		$body = $this->request->getBody();
@@ -693,7 +692,7 @@ class RestfulServer extends Controller {
 	 * @return string The request payload (or vars, for GET) in string form.
 	 */
 	public function getPayloadString() {
-		if($this->request->isGet()) {
+		if($this->request->isGet() || $this->request->isDELETE()) {
 			$vars = $this->request->getVars();
 			unset($vars['url']); // SS auto adds this for routing - discard it
 			return http_build_query($vars);
