@@ -525,6 +525,9 @@ class RestfulServer extends Controller {
 				else if($result instanceof ArrayList) {
 					return $responseFormatter->convertArrayList($result);
 				}
+				else if(is_array($result)) {
+					return $responseFormatter->convertArray($result);
+				}
 				else if($result instanceof RestfulServer_API) {
 					$result = $result->getData();
 				}
@@ -564,6 +567,15 @@ class RestfulServer extends Controller {
 			// Handle validation errors
 			if($result instanceof ValidationResult) {
 				return $this->handleValidationError($result, $reqFormatter);
+			}
+			else if($result instanceof ArrayList) {
+				return $reqFormatter->convertArrayList($result);
+			}
+			else if(is_array($result)) {
+				return $reqFormatter->convertArray($result);
+			}
+			else if($result instanceof RestfulServer_API) {
+				$result = $result->getData();
 			}
 			else if(is_string($result) || !isset($result)) {
 				return $result;
