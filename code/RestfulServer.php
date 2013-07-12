@@ -564,6 +564,15 @@ class RestfulServer extends Controller {
 				$this->getResponse()->setStatusCode(201); // Created
 			}
 
+			if(isset($result->class)) {
+				$formatterClass = $result->class;
+			}
+			else {
+				$formatterClass = $className;
+			}
+			$responseFormatter = $this->getResponseDataFormatter($formatterClass);
+			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
+
 			// Handle validation errors
 			if($result instanceof ValidationResult) {
 				return $this->handleValidationError($result, $reqFormatter);
@@ -580,10 +589,6 @@ class RestfulServer extends Controller {
 			else if(is_string($result) || !isset($result)) {
 				return $result;
 			}
-
-			$responseFormatter = $this->getResponseDataFormatter($result->class);
-
-			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
 			// Append the default extension for the output format to the Location header
 			// or else we'll use the default (XML)
