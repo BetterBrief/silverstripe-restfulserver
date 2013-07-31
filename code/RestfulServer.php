@@ -570,14 +570,22 @@ class RestfulServer extends Controller {
 			else {
 				$formatterClass = $className;
 			}
-			$responseFormatter = $this->getResponseDataFormatter($formatterClass);
+			if($result instanceof DataObject) {
+				$responseFormatter = $this->getResponseDataFormatter($formatterClass);
+			}
+			else {
+				$responseFormatter = $reqFormatter;
+			}
+
 			$this->getResponse()->addHeader('Content-Type', $responseFormatter->getOutputContentType());
 
 			// Handle validation errors
 			if($result instanceof ValidationResult) {
 				return $this->handleValidationError($result, $reqFormatter);
 			}
-			else if($result instanceof ArrayList) {
+
+
+			if($result instanceof ArrayList) {
 				return $reqFormatter->convertArrayList($result);
 			}
 			else if(is_array($result)) {
