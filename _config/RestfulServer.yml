@@ -8,3 +8,6 @@ RestfulServer:
   default_extension: 'xml'
   # If no extension is given, resolve the request to this mimetype.
   default_mimetype: 'text/xml'
+Director:
+  rules:
+    'admin': 'AdminRootController'
